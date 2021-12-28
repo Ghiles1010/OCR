@@ -18,7 +18,7 @@ class Filter(QGroupBox):
 
         self.current_value = init_value
 
-        self.isApplied = True
+        self.isApplied = False
         self.label = None
         self.slider = None
         self.up_button = None
@@ -94,6 +94,7 @@ class Filter(QGroupBox):
         self.slider.setMinimum(self.min_value)
         self.slider.setMaximum(self.max_value)
         self.slider.setSingleStep(self.step)
+        self.slider.setTickInterval(self.step)
         self.slider.setValue(self.init_value)
 
         self.slider.valueChanged.connect(lambda: self.on_drag())

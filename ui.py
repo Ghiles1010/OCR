@@ -1,7 +1,6 @@
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QFileDialog
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QFileDialog, QTabWidget
 
 from Filter import Filter
 import cv2
@@ -14,8 +13,8 @@ class UI:
         self.app = QtWidgets.QApplication([])
         self.MainWindow = QtWidgets.QMainWindow()
 
-        self.origin_image = np.zeros((600,600,3), dtype=np.uint16)
-        self.result_image = np.zeros((600,600,3), dtype=np.uint16)
+        self.origin_image = np.zeros((600, 600, 3), dtype=np.uint16)
+        self.result_image = np.zeros((600, 600, 3), dtype=np.uint16)
         pixmap = self.cv2_to_pixmap(self.result_image)
 
         self.MainWindow.setObjectName("MainWindow")
@@ -47,37 +46,21 @@ class UI:
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.browse_input = QtWidgets.QLineEdit(self.widget)
         self.browse_input.setObjectName("browse_input")
-        self.browse_input.setText("Choose an image")
         self.browse_input.setReadOnly(True)
         self.horizontalLayout.addWidget(self.browse_input)
         self.browse_btn = QtWidgets.QPushButton(self.widget)
         self.browse_btn.setObjectName("browse_btn")
         self.browse_btn.clicked.connect(lambda: self.on_browse())
         self.horizontalLayout.addWidget(self.browse_btn)
-        self.gridLayout.addLayout(self.horizontalLayout, 0, 1, 1, 1)
+        self.gridLayout.addLayout(self.horizontalLayout, 1, 1, 1, 1)
         self.label = QtWidgets.QLabel(self.widget)
         self.label.setObjectName("label")
-        self.gridLayout.addWidget(self.label, 1, 1, 1, 1)
-        self.scrollArea = QtWidgets.QScrollArea(self.widget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.scrollArea.sizePolicy().hasHeightForWidth())
-        self.scrollArea.setSizePolicy(sizePolicy)
-        self.scrollArea.setMaximumSize(QtCore.QSize(900, 900))
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollArea.setObjectName("scrollArea")
-        self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 527, 528))
-        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
-        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
-        self.gridLayout.addWidget(self.scrollArea, 2, 1, 1, 1)
-        self.scrollArea.setWidgetResizable(True)
-        widget = QWidget()
-        self.filter_list = QVBoxLayout()
-        widget.setLayout(self.filter_list)
+        self.gridLayout.addWidget(self.label, 0, 1, 1, 1)
 
-        self.scrollArea.setWidget(widget)
+        self.tabs = QTabWidget()
+        self.filter_list = self.__setup_tab("Filters")
+        # self.binar_list = self.__setup_tab("Binarisation")
+
         self.MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(self.MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 962, 24))
@@ -90,9 +73,36 @@ class UI:
         _translate = QtCore.QCoreApplication.translate
         self.MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.browse_btn.setText(_translate("MainWindow", "Browse"))
-        self.label.setText(_translate("MainWindow", "Filters"))
+        self.label.setText(_translate("MainWindow", "Choose an image"))
 
         QtCore.QMetaObject.connectSlotsByName(self.MainWindow)
+
+    def __setup_tab(self, tab_name):
+
+        scroll = QtWidgets.QScrollArea(self.widget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(scroll.sizePolicy().hasHeightForWidth())
+        scroll.setSizePolicy(sizePolicy)
+        scroll.setMaximumSize(QtCore.QSize(900, 900))
+        scroll.setWidgetResizable(True)
+        scroll.setObjectName("scrollArea_"+tab_name)
+        self.scrollAreaWidgetContents = QtWidgets.QWidget()
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 527, 528))
+        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents_"+tab_name)
+        scroll.setWidget(self.scrollAreaWidgetContents)
+        self.gridLayout.addWidget(self.tabs, 2, 1, 1, 1)
+        scroll.setWidgetResizable(True)
+        widget = QWidget()
+        tab_list = QVBoxLayout()
+        widget.setLayout(tab_list)
+        scroll.setWidget(widget)
+        self.tabs.addTab(scroll, tab_name)
+        return tab_list
+    def __setup_binarisation_tab(self):
+        pass
+
 
     def on_browse(self):
         image_path, _ = QFileDialog.getOpenFileName(filter='Image Files(*.png *.jpg *.bmp)')
@@ -113,7 +123,7 @@ class UI:
     def modify_image(self):
         self.result_image = self.origin_image
 
-        for i in range(self.filter_list.count()):
+        for i in range(self.filter_list.count()-1, -1, -1):
             f = self.filter_list.itemAt(i).widget()
             if f.isApplied:
                 self.result_image = f.function(self.result_image, f.current_value)
@@ -130,6 +140,9 @@ class UI:
         pixmap = self.cv2_to_pixmap(self.result_image)
         self.image.setPixmap(pixmap)
 
+    # def add_binarisation():
+    #     pass
+
     def set_image(self, image):
         self.origin_image = image
         self.result_image = image
@@ -143,7 +156,4 @@ class UI:
 
 if __name__ == "__main__":
     ui = UI()
-    ui.set_image(cv2.imread("images/image6.jpg"))
-    ui.add_filter("Mean Filter", None, "x", 1, 20, 5)
-    ui.add_filter("Median Filter", None, "x", 1, 20, 5)
-    ui.show()
+
